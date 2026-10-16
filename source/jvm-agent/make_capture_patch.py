@@ -69,6 +69,6 @@ for k,v in meta.items():
 header+='#define CAPTURE_FNV '+hex(h)+'u\n'+arr('capture_cp_extra',extra)+arr('capture_call_original',old)+arr('capture_call_replacement',new)
 base=bytearray(b[:cp_end]+extra+b[cp_end:c+108]+new+b[c+121:])
 fixups=[(i,x) for i,x in enumerate(out) if base[i]!=x]
-header+='static const struct { unsigned int offset; unsigned char value; } capture_fixups[] = {'+','.join('{%du,0x%02x}'%v for v in fixups)+'};\n' 
+header+='static const struct { unsigned int offset; unsigned char value; } capture_fixups[] = {'+','.join('{%du,0x%02x}'%v for v in fixups)+'};\n'
 Path('capture_patch.h').write_text(header)
 print(json.dumps(meta,indent=2))
