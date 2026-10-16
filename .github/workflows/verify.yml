@@ -1,0 +1,18 @@
+name: Verify
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        run: sudo apt-get update && sudo apt-get install -y python3-xlib python3-gi xvfb x11-xserver-utils desktop-file-utils clang lld llvm default-jdk-headless
+      - name: Verify scripts, payloads and X11 helpers
+        run: bash verify.sh
+      - name: Build compatibility shims
+        run: |
+          bash source/jvm-agent/build.sh
+          bash source/ble-stub/build.sh
+          bash source/display-cache/build.sh

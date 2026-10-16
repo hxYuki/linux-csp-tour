@@ -1,0 +1,2 @@
+https://www.sqlite.org/2026/sqlite-dll-win-x64-3540000.zip
+SHA3-256 f5fb500c73a3afd89976386bb8e4fdc8b5b65c052e187fb1ada1f5de034cd45b

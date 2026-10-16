@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+share="${XDG_DATA_HOME:-$HOME/.local/share}/linux-csp-tour"
+source "$share/environment.sh"
+runtime="${XDG_RUNTIME_DIR:?No graphical user session}"
+display="${DISPLAY:?No Plasma Xwayland display}"
+serial=$("$share/serial-device.py")
+app="$compat_prefix/drive_c/Program Files/TourBox Console"
+mkdir -p "${XDG_STATE_HOME:-$HOME/.local/state}/linux-csp-tour"
+exec >>"${XDG_STATE_HOME:-$HOME/.local/state}/linux-csp-tour/console.log" 2>&1
+printf '\n=== %s ===\n' "$(date --iso-8601=seconds)"
+[[ -r "$serial" && -w "$serial" ]] || { echo 'TourBox NEO is not accessible'; exit 1; }
+wait_for_monitors
+exec 9>"$runtime/tourbox-console-v2.lock"
+flock -n 9 || exit 0
+"$share/tourbox-stop.py" --check
+cleanup() {
+    trap - EXIT TERM INT HUP
+    "$share/tourbox-stop.py" || true
+}
+trap cleanup EXIT
+trap 'exit 143' TERM INT HUP
+# Refuse another visible serial owner; never terminate an unrelated driver.
+if fuser "$serial" >/dev/null 2>&1; then echo 'Serial port is already in use'; exit 1; fi
+stty -F "$serial" raw 115200 cs8 -cstopb -parenb -ixon -ixoff -crtscts clocal -hupcl
+token=$(cat /proc/sys/kernel/random/uuid)
+printf '%s\n' "$token" >"$runtime/tourbox-console.token"
+wine_env=(env -i "HOME=$HOME" "USER=$USER" PATH=/usr/bin:/bin "XDG_RUNTIME_DIR=$runtime"
+    "DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS:-unix:path=$runtime/bus}"
+    "DISPLAY=$display" "XAUTHORITY=${XAUTHORITY:-}" "WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-}"
+    "WINEPREFIX=$compat_prefix" "WINESERVER=$WINESERVER" WINEDEBUG=-all
+    "WINEDLLPATH=$compat_cspenguin" "LC_ALL=$compat_locale" DXVK_LOG_LEVEL=none "TOURBOX_SESSION_TOKEN=$token")
+run_wine() { "${wine_env[@]}" "$compat_wine" "$@" 9>&-; }
+ln -sfn "$serial" "$compat_prefix/dosdevices/com33"
+run_wine reg add 'HKLM\Software\Wine\Ports' /v COM33 /t REG_SZ /d "$serial" /f
+run_wine reg add 'HKLM\HARDWARE\DEVICEMAP\SERIALCOMM' /v '\Device\USBSER_TOURBOX' /t REG_SZ /d COM33 /f
+run_wine reg add 'HKLM\SYSTEM\CurrentControlSet\Enum\USB\VID_CAFE&PID_4001\TourBox\Device Parameters' /v PortName /t REG_SZ /d COM33 /f
+wait_for_monitors
+cd "$app"
+"${wine_env[@]}" "$compat_wine" 'TourBox Console.exe' 9>&- &
+pid=$!
+status=0
+wait "$pid" || status=$?
+exit "$status"

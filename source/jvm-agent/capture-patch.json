@@ -1,0 +1,14 @@
+{
+  "class": "o0o002C239B89/O0o002C231F41",
+  "original_length": 12816,
+  "original_sha256": "e5c77d3756e0e87cb40ab41cea251b638b329e45b963ed9b9818112b4cd3ae44",
+  "original_fnv": "0x55d123c5",
+  "cp_end": 9178,
+  "cp_count": 543,
+  "code_attribute": 11138,
+  "code_offset": 11152,
+  "code_length": 311,
+  "extra_cp_length": 115,
+  "code_delta": 9,
+  "patched_sha256": "cbf5d4659764fcd5230c5a29150c51c62c6467db870300e7d4e6416f0ceaa9bf"
+}

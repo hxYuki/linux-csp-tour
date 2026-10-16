@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+share="${XDG_DATA_HOME:-$HOME/.local/share}/linux-csp-tour"
+source "$share/environment.sh"
+mode="${1:-paint}"
+shift || true
+[[ "${XDG_CURRENT_DESKTOP:-}" == *KDE* && "${XDG_SESSION_TYPE:-}" == wayland && -n "${DISPLAY:-}" ]] || {
+    echo 'Run this launcher in the target user’s Plasma Wayland session.' >&2; exit 1;
+}
+wait_for_monitors
+systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
+if [[ -v XAUTHORITY ]]; then systemctl --user import-environment XAUTHORITY; fi
+systemctl --user start csp-display-cache.service csp-navigator-parent.service
+case "$mode" in
+    paint)
+        systemctl --user start tourbox-console.service || echo 'TourBox did not start; inspect its user journal.' >&2
+        exe="$compat_prefix/drive_c/Program Files/CELSYS/CLIP STUDIO 1.5/CLIP STUDIO PAINT/CLIPStudioPaint.exe"
+        args=()
+        for file in "$@"; do args+=("$(winepath --windows "$file")"); done
+        wait_for_monitors
+        exec "$compat_wine" "$exe" "${args[@]}"
+        ;;
+    studio)
+        exec "$compat_wine" "$compat_prefix/drive_c/Program Files/CELSYS/CLIP STUDIO 1.5/CLIP STUDIO/CLIPStudio.exe" "$@"
+        ;;
+    url)
+        url="${1:?Missing callback URL}"
+        case "$url" in
+            clipstudio:*) exe='CLIP STUDIO/CLIPStudio.exe' ;;
+            clipstudiopaint:*) exe='CLIP STUDIO PAINT/CLIPStudioPaint.exe' ;;
+            *) echo 'Unsupported callback scheme' >&2; exit 2 ;;
+        esac
+        exec "$compat_wine" "$compat_prefix/drive_c/Program Files/CELSYS/CLIP STUDIO 1.5/$exe" -url "$url"
+        ;;
+    *) echo 'Usage: csp-tour paint [files...] | studio | url URL' >&2; exit 2 ;;
+esac
