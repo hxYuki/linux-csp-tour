@@ -15,11 +15,58 @@ The launcher adapter preserves upstream export flags. Reapply the add-on after c
 - Electron software rendering is enabled before readiness, guarded by the original main-script hash. The rest of the ASAR is retained. Existing F17/F18 bindings are preserved, including an explicitly unassigned action.
 - The original serial DLL is retained. SQLite is added within Console rather than replacing a global Wine component.
 
-## Single desktop
+## Per-installation desktop scope
 
 The current user's existing Plasma Wayland display is used for CSP and Console. Monitor readiness is checked before Wine display initialization. Window helpers subscribe to this Xwayland connection: the display-cache helper follows work-area/client changes, and the Navigator helper maintains the direct relationship with the same process's visible main window.
 
-There is no login-manager configuration, session enumeration, other-account fallback, VT switching, private compositor or tablet hardware policy in this project. The prefix is checked for current-user ownership. One desktop session is the operating assumption.
+Each installation belongs to its current user and Plasma session; the prefix is checked for current-user ownership. Separate users may keep a Niri work session and a native Plasma drawing session running concurrently. Account/session creation and VT switching are configured outside this installer. Apply from the drawing user's Plasma terminal, with that user's prefix and user services.
+
+## Session switching and the separate Wine patch
+
+The motivating workflow keeps Niri available for other work while CSP and
+TourBox remain open in another user's native Plasma Wayland session. The user
+switches VTs between these sessions and expects the canvas, pen input and
+Console connection to survive the round trip, followed by normal CSP exit and
+reopening. This is broader than switching focus between two application windows.
+
+During VT/display transitions, physical outputs can disappear and reappear in
+Xwayland's RandR view. In the observed Wine 11.4 failures, IDs from a screen
+resource snapshot became invalid before later queries. Fatal `BadRROutput`
+and `BadRRCrtc` errors could terminate Wine explorer and destroy shared X11
+resources. CSP and Console also exited with `BadWindow / X_UnmapWindow` on
+focus changes. A later incident left CSP windowless but still running, blocking
+reopening; its waiting-thread stack did not establish the CRTC error as the
+sole cause of the shutdown wait.
+
+Investigation separately reproduced a wineserver serial polling use-after-free:
+waking an exiting client could free the request before the callback rearmed
+its timeout. This establishes a callback defect, rather than proving that VT
+switching caused every serial crash or that all observed failures share one
+complete causal chain.
+
+The [Wine fork branch](https://github.com/hxYuki/wine/tree/csp-stability-wine-11.4)
+is based on upstream `wine-11.4` (`cc893ef9cb17b994bfd1f1a1f7355be55e615623`):
+
+| Source | Repair |
+|---|---|
+| `dlls/winex11.drv/xrandr.c` | Trap stale output, CRTC, provider and EDID query errors and use the existing failure paths, retaining RandR and monitor enumeration |
+| `server/serial.c` | Rearm the polling timeout before waking the wait queue, so the callback does not access a request freed during wakeup |
+
+The [pinned source and validation notes](https://github.com/hxYuki/wine/blob/0ebfb09bde4045aa2446b20690d88e5dbe65f962/documentation/csp-stability-fixes.md)
+include ASan serial reproduction, 1,000 serial wait/cancel/termination cycles,
+and isolated Xvfb fault injection for output/CRTC/provider/EDID queries. On
+2026-10-28, the local patched runtime passed drawing/pressure, switching to
+another VT and back, TourBox/CSP focus changes, and a separate real CSP
+close/reopen test. Fresh-login and extended-use acceptance were not covered.
+
+The local deployment used a dedicated copy of Wine 11.4, preserving the
+original runtime and existing prefix. This repository references the Wine
+source patch separately from its Console JVMTI agents and window helpers;
+`install.sh` does not build or deploy the fork. Select a prepared matching
+runner with `--wine /path/to/patched-wine/bin/wine`, or configure it in the
+upstream launcher's `WINESERVER` export before applying. The runtime helpers
+remain bound to Wine 11.4; the patch's modules must be rebuilt and revalidated
+for a different Wine version.
 
 ## Validation
 

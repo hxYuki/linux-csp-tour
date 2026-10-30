@@ -1,6 +1,6 @@
 # linux-csp-tour
 
-为**当前用户、单一 Plasma Wayland 桌面会话**安装和适配 TourBox Console。基础环境由 [CSPenguin-Installer](https://github.com/parka6060/CSPenguin-Installer) 提供。
+为**目标用户的 Plasma Wayland 桌面会话**安装和适配 TourBox Console。基础环境由 [CSPenguin-Installer](https://github.com/parka6060/CSPenguin-Installer) 提供。
 
 ## 一键安装
 
@@ -16,7 +16,17 @@ cd linux-csp-tour
 
 适用组合：**Plasma Wayland、Wine 11.4、指定构建的 Console 5.12.0、USB TourBox NEO**。写入前会校验应用构建哈希；蓝牙和其他构建暂未覆盖。
 
-全流程沿用当前用户身份。没有其他账号回退、身份切换、虚拟终端交接或第二套桌面；也不包含本机专用数位板规则。CSPenguin 已提供的 Wine、WebView2、DXVK、视频补丁、字体和缩略图继续复用。
+安装器管理当前用户的前缀、启动器和服务；账号、桌面会话、VT 切换及数位板规则由外部环境配置。CSPenguin 已提供的 Wine、WebView2、DXVK、视频补丁、字体和缩略图继续复用。
+
+## 会话切换需求与 Wine 补丁
+
+本项目的实际使用需求是：保留 Niri 工作会话，同时在另一个用户的原生 Plasma Wayland 会话中运行 CSP 和 TourBox，通过 VT 往返切换，保持绘图应用和画布继续运行，并能正常退出、重开 CSP。
+
+这套工作流中的显示输出变化暴露了 Wine 11.4 对失效 RandR 资源的处理问题。现场出现过 `BadRROutput` / `BadRRCrtc`、Wine explorer 退出，以及切换焦点时 CSP 或 Console 因 `BadWindow` 退出；后续还出现 CSP 窗口已关闭、进程却残留而无法重开的情况。排查期间还独立复现了串口客户端退出时 wineserver 的释放后使用缺陷，不能把这些故障简单归结为同一条已证实的因果链。
+
+相关源码修复已发布到 [hxYuki/wine 的 csp-stability-wine-11.4 分支](https://github.com/hxYuki/wine/tree/csp-stability-wine-11.4)：保护 RandR 输出、CRTC、Provider 和 EDID 的失效资源查询，并修正串口轮询回调的生命周期。详见 [复现与验收记录](https://github.com/hxYuki/wine/blob/0ebfb09bde4045aa2446b20690d88e5dbe65f962/documentation/csp-stability-fixes.md)及 [集成边界](docs/patches.md#session-switching-and-the-separate-wine-patch)。修补后的本机环境已通过 VT 往返、绘画压感、TourBox 操作和 CSP 退出重开验收。
+
+Wine 补丁作为独立运行时修复在此引用；本安装器继续使用选定的 Wine 11.4 运行器。针对这类多会话使用，应在绘图用户的 Plasma 会话中运行安装器，各用户分别使用自己的前缀和用户服务。
 
 ## 依赖与选项
 

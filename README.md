@@ -6,7 +6,7 @@ Install the official **TourBox Console** into the current user's [CSPenguin](htt
 
 ## Install
 
-Use your normal desktop account in **one Plasma Wayland session**. Install CSP with CSPenguin first, and obtain the official TourBox Console **5.12.0** Windows installer.
+Use the target desktop account inside its **Plasma Wayland session**. Install CSP with CSPenguin first, and obtain the official TourBox Console **5.12.0** Windows installer.
 
 Save your work and close CSP and Console, then run:
 
@@ -20,7 +20,15 @@ The script reads the current user's `~/.local/share/cspenguin/csp-launch.sh` to 
 
 The supported combination is **CSPenguin Wine 11.4 + the supported TourBox 5.12.0 build + USB NEO + Plasma Wayland**. Exact application hashes are checked before modifying anything. Bluetooth and other Console builds are not covered.
 
-The script uses the current user's environment throughout. It does not create accounts, switch users, manage virtual terminals, start another compositor, or install device-specific tablet rules. Existing CSPenguin Wine, WebView2, DXVK, media patches, fonts and thumbnails are reused.
+The script manages the current user's prefix, launchers and services. Accounts, desktop sessions, VT switching and device-specific tablet rules are configured separately. Existing CSPenguin Wine, WebView2, DXVK, media patches, fonts and thumbnails are reused.
+
+### Session switching and the Wine patch
+
+This project grew out of a workflow that keeps a Niri work session running while CSP and TourBox run in a separate user's native Plasma Wayland session. Switching VTs between the two should preserve the drawing session and allow normal CSP exit/reopen.
+
+During that workflow, changing display availability exposed stale RandR resource queries in Wine 11.4. Observed failures included `BadRROutput` / `BadRRCrtc`, Wine explorer exiting, CSP or Console exiting with `BadWindow` on focus changes, and a windowless CSP process blocking reopening. Investigation also independently reproduced a serial-wait use-after-free in wineserver during client exit.
+
+The related [Wine 11.4 patch branch](https://github.com/hxYuki/wine/tree/csp-stability-wine-11.4) guards stale RandR output/CRTC/provider/EDID queries and fixes the serial callback lifetime. See its [reproduction and acceptance notes](https://github.com/hxYuki/wine/blob/0ebfb09bde4045aa2446b20690d88e5dbe65f962/documentation/csp-stability-fixes.md) and [integration scope](docs/patches.md#session-switching-and-the-separate-wine-patch). The tested setup passed VT return, drawing/pressure, TourBox operation and CSP close/reopen. This add-on references that separate runtime patch; its installer continues to use the selected Wine 11.4 runner.
 
 ### Dependencies
 
