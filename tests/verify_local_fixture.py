@@ -76,6 +76,25 @@ with tempfile.TemporaryDirectory() as tmp:
         for path, data, mode in addon.plan_files(config, installed, False):
             second.write(path, data, mode)
         assert second.record['files'] == [], [f['path'] for f in second.record['files']]
+        modifier = installed / 'win64libs/tourbox-modifier-fix.dll'
+        launch_config = installed / 'TourBox Console.json'
+        current_config = launch_config.read_bytes()
+        assert json.loads(current_config)['vmArgs'].count(r'-agentpath:win64libs\tourbox-modifier-fix.dll') == 1
+        assert modifier.read_bytes() == (ROOT / 'payload/tourbox-modifier-fix.dll').read_bytes()
+        # A previous modifier payload is upgraded by the real plan and restored
+        # by the same receipt, without rewriting an already normalized config.
+        previous_modifier = b'previous modifier payload fixture'
+        modifier.write_bytes(previous_modifier)
+        upgrade = addon.Transaction(home / 'backups/upgrade')
+        for path, data, mode in addon.plan_files(config, installed, False):
+            upgrade.write(path, data, mode)
+        assert [entry['path'] for entry in upgrade.record['files']] == [str(modifier)]
+        assert modifier.read_bytes() == (ROOT / 'payload/tourbox-modifier-fix.dll').read_bytes()
+        assert launch_config.read_bytes() == current_config
+        assert not addon.restore_files(upgrade.directory)[1]
+        assert modifier.read_bytes() == previous_modifier
+        assert launch_config.read_bytes() == current_config
+        addon.atomic(modifier, (ROOT / 'payload/tourbox-modifier-fix.dll').read_bytes(), 0o644)
         runtime = Path(tmp) / 'runtime'; runtime.mkdir(mode=0o700)
         for path in home.rglob('*.service'):
             result = subprocess.run(['systemd-analyze', '--user', 'verify', str(path)], capture_output=True, text=True,
@@ -131,4 +150,5 @@ with (Path.home()/'wine-calls').open('a') as f:
         _, conflicts = addon.restore_files(transaction.directory)
         assert not conflicts, conflicts
         assert not (home / '.local/bin/csp-tour').exists()
-print('PASS full temp-HOME install, unchanged second apply, services/desktops, wrappers/raw serial/FD isolation, rollback')
+        assert not modifier.exists() and not launch_config.exists()
+print('PASS full temp-HOME install, unchanged reapply, modifier upgrade/rollback, services/desktops, wrappers/raw serial/FD isolation, rollback')

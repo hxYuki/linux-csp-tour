@@ -32,12 +32,28 @@ class InstallerTests(unittest.TestCase):
         original = {'vmArgs': ['-agentpath:LibH.dll', '-Xmx1g', '-agentpath:old\\tourbox-wine-compat.dll'], 'classPath': ['LibTW.dec']}
         patched = addon.patch_json(json.dumps(original).encode())
         args = json.loads(patched)['vmArgs']
-        self.assertEqual(args[:2], ['-agentpath:LibH.dll', r'-agentpath:win64libs\tourbox-wine-compat.dll'])
+        self.assertEqual(args[:3], ['-agentpath:LibH.dll', r'-agentpath:win64libs\tourbox-wine-compat.dll',
+                                   r'-agentpath:win64libs\tourbox-modifier-fix.dll'])
         self.assertEqual(args.count('-Xmx1g'), 1)
         self.assertEqual(patched, addon.patch_json(patched))
         original['vmArgs'].append('-agentpath:console-stack.dll')
         with self.assertRaises(RuntimeError):
             addon.patch_json(json.dumps(original).encode())
+
+    def test_existing_modifier_agent_is_deduplicated_without_changing_other_options(self):
+        original = {'vmArgs': [r'-agentpath:old\tourbox-modifier-fix.dll', '-Xmx1g',
+                               '-agentpath:LibH.dll', '-agentpath:other.dll',
+                               r'-agentpath:win64libs\tourbox-wine-compat.dll',
+                               r'-agentpath:win64libs\tourbox-modifier-fix.dll'],
+                    'classPath': ['LibTW.dec'], 'mainClass': 'com.tourbox.ui.launch.TourBoxMain'}
+        patched = addon.patch_json(json.dumps(original).encode())
+        value = json.loads(patched)
+        self.assertEqual(value['vmArgs'], ['-Xmx1g', '-agentpath:LibH.dll',
+                                         r'-agentpath:win64libs\tourbox-wine-compat.dll',
+                                         r'-agentpath:win64libs\tourbox-modifier-fix.dll', '-agentpath:other.dll'])
+        self.assertEqual(value['classPath'], original['classPath'])
+        self.assertEqual(value['mainClass'], original['mainClass'])
+        self.assertEqual(patched, addon.patch_json(patched))
 
     def test_asar_guard_idempotence_and_unrelated_data(self):
         source = b'prefix\nelectron["app"]["whenReady"]()\nsuffix'

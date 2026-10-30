@@ -42,12 +42,15 @@ Console 启动时自动识别已连接的 USB NEO。当前用户应有串口读�
 
 - NEO 串口 raw / 115200 / 8N1、COM33 与 Windows USB 枚举。
 - USB-only BLE shim、中文 HKL 重试循环修补、CSP 二维码 BitBlt 截图修补。
+- 修复长键＋滚轮丢失 Alt，以及长键＋R1 连按后松开仍保持吸管；保留已有预设和快捷键。
 - 应用内 SQLite DLL、Electron 拾色器软件渲染。
 - 官方 CSP 集成命令补缺，保留已有快捷键和配对信息。
 - 当前桌面的 Wine 工作区缓存刷新与导航器父窗口关系维护。
 - 同显示会话启动、输出就绪检查、无锁 FD 继承的单实例控制，以及限定 Console 的退出处理。
 
 窗口 helper 仅监听当前 Xwayland 连接，不枚举其他用户会话。账号登录与 companion 配对仍使用官方界面。
+
+已有安装正常关闭 CSP 和 Console 后，重新运行 `./install.sh` 即可升级到 v3 修饰键补丁；DLL 和启动参数纳入同一备份、回退流程。v3 在延迟恢复 Alt 前复查拾色器状态，避免全部松开后再次按住 Alt。源码、版本检查和回归方法见 [补丁说明](source/modifier-agent/README.md)。
 
 ## 备份、回退和验证
 

@@ -158,10 +158,14 @@ def patch_json(raw):
     require(isinstance(args, list), 'Invalid TourBox vmArgs')
     require(not any('classdump' in x or 'console-stack' in x or 'purejavacomm.loglevel' in x for x in args),
             'Temporary diagnostic arguments found; remove them before applying')
-    args = [x for x in args if not (x.startswith('-agentpath:') and 'tourbox-wine-compat' in x)]
+    agents = ('tourbox-wine-compat', 'tourbox-modifier-fix')
+    args = [x for x in args if not (x.startswith('-agentpath:') and any(name in x for name in agents))]
     indices = [i for i, x in enumerate(args) if x.lower() == '-agentpath:libh.dll']
     require(len(indices) == 1, 'Expected the original LibH agent exactly once')
-    args.insert(indices[0] + 1, r'-agentpath:win64libs\tourbox-wine-compat.dll')
+    args[indices[0] + 1:indices[0] + 1] = [
+        r'-agentpath:win64libs\tourbox-wine-compat.dll',
+        r'-agentpath:win64libs\tourbox-modifier-fix.dll',
+    ]
     value['vmArgs'] = args
     return (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode()
 
@@ -391,7 +395,7 @@ def plan_files(config, source, fresh):
             add(app / relative, item)
     add(app / 'TourBox Console.json', patch_json((source / 'TourBox Console.json').read_bytes()))
     add(app / 'app/resources/app.asar', patch_asar((source / 'app/resources/app.asar').read_bytes()))
-    for name in ('tourbox-wine-compat.dll', 'libBLEWrapper.dll', 'winsqlite3.dll'):
+    for name in ('tourbox-wine-compat.dll', 'tourbox-modifier-fix.dll', 'libBLEWrapper.dll', 'winsqlite3.dll'):
         add(app / 'win64libs' / name, (ROOT / 'payload' / name).read_bytes())
     roaming = prefix / 'drive_c/users' / config['wine_user'] / 'AppData/Roaming'
     custom = roaming / 'TourBox Console/customConfig'

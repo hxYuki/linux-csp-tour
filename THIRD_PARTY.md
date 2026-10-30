@@ -6,7 +6,7 @@
 | TourBox Console | Supplied separately by the user from [TourBox](https://www.tourboxtech.com/en/downloads/). No installer, vendor executable, JAR, class fixture or complete patched ASAR is distributed here. |
 | SQLite | `payload/winsqlite3.dll` is the official Windows x64 SQLite 3.54.0 DLL renamed for Console's loader. SQLite is [public domain](https://www.sqlite.org/copyright.html). Source package URL and verified SHA3-256 are in `docs/sqlite-source.txt`. |
 | Wine | Installed by CSPenguin. The cache helper targets the [Wine 11.4 interface](https://gitlab.winehq.org/wine/wine/-/tree/wine-11.4) and does not bundle Wine. |
-| JNI/JVMTI | Build-time interfaces supplied by the user's JDK; local ABI declarations are in `source/jvm-agent/include/`. |
+| JNI/JVMTI | Build-time interfaces supplied by the user's JDK; local ABI declarations are in `source/jvm-agent/include/` and `source/modifier-agent/include/`. The optional picker-patch generator uses the JDK's internal ASM at build/test time. |
 
 The installer, launchers, window helpers and compatibility shim sources are covered by the repository's MIT license. `payload/SHA256.json` records the exact shipped compatibility binaries.
 

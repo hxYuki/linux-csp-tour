@@ -55,6 +55,7 @@ The Console locale defaults to the current language. If a device's regional chec
 | USB NEO | Raw 115200/8N1 serial setup, COM33 mapping, Wine USB enumeration values |
 | BLE initialization | USB-only compatibility shim and Console configuration |
 | Keyboard layout | Guarded JVMTI patch bounds the HKL activation retry loop |
+| Shortcut modifiers | Reassert repeated wheel modifiers, synchronize button-release caching, and suppress delayed Alt restoration after the picker closes |
 | CSP companion QR | Guarded replacement of the affected PrintWindow call with BitBlt |
 | Picker rendering | Software rendering enabled before Electron readiness; other ASAR files preserved |
 | SQLite | Official SQLite x64 DLL provided inside Console |
@@ -64,6 +65,8 @@ The Console locale defaults to the current language. If a device's regional chec
 | Launch/exit | Current display, monitor readiness, a single-instance lock without inherited Wine lock descriptors, scoped Console exit |
 
 The window helpers watch the current X11/Xwayland connection. They do not enumerate other users' sessions or depend on account switching. Companion login and pairing continue through the official UI; existing pairing data is preserved.
+
+The modifier agent fixes long-button + wheel shortcuts losing Alt and long-button + repeated R1 leaving CSP in eyedropper mode after release. Existing presets and shortcuts are preserved. Existing installations receive the v3 agent by rerunning `./install.sh` with CSP and Console closed; the same backup and rollback mechanism covers its DLL and launch arguments. See [modifier patch details and regression tests](source/modifier-agent/README.md).
 
 ## Backup and rollback
 

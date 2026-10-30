@@ -4,6 +4,7 @@ From the repository root:
 
 ```bash
 bash source/jvm-agent/build.sh
+bash source/modifier-agent/build.sh
 bash source/ble-stub/build.sh
 bash source/display-cache/build.sh
 ```
@@ -19,4 +20,4 @@ Wine 11.4 interface and must be rechecked for other Wine versions.
 
 The vendor's installer, JAR and class fixtures are not needed to build these
 sources and must not be committed. Agent callback tests requiring private
-fixtures are described in `jvm-agent/README.md`.
+fixtures are described in `jvm-agent/README.md` and `modifier-agent/README.md`.

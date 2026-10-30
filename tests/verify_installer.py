@@ -79,8 +79,15 @@ with tempfile.TemporaryDirectory(prefix='csp-tour-test-') as temporary:
         assert len(first['files']) > 50 and not second['files']
         assert all('start' not in command for command in commands), 'Installer started a real application service'
         assert addon.digest(prefix / 'drive_c/Program Files/TourBox Console/LibTW.dec') == addon.JAR_HASH
+        app = prefix / 'drive_c/Program Files/TourBox Console'
+        assert addon.digest(app / 'win64libs/tourbox-modifier-fix.dll') == addon.digest(ROOT / 'payload/tourbox-modifier-fix.dll')
+        args = json.loads((app / 'TourBox Console.json').read_bytes())['vmArgs']
+        compat = args.index(r'-agentpath:win64libs\tourbox-wine-compat.dll')
+        assert args[compat + 1] == r'-agentpath:win64libs\tourbox-modifier-fix.dll'
+        assert args.count(r'-agentpath:win64libs\tourbox-modifier-fix.dll') == 1
         assert not addon.restore_files(backups[0])[1]
         assert not (prefix / 'drive_c/Program Files/TourBox Console/TourBox Console.exe').exists()
+        assert not (app / 'win64libs/tourbox-modifier-fix.dll').exists()
         assert paint.exists()
         print('PASS fresh install, custom CSPenguin prefix discovery, unchanged reapply and rollback;',
               len(first['files']), 'files installed in temporary HOME', flush=True)
